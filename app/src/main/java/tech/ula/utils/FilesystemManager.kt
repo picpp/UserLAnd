@@ -39,6 +39,24 @@ class FilesystemManager(
         }
     }
 
+    fun copyAssetsFromFilesystem(targetFilesystemName: String) : Boolean {
+        val targetDirectory = File("$filesDirPath/$targetFilesystemName")
+        val targetDirectoryFiles = targetDirectory.listFiles()
+        targetDirectoryFiles?.let {
+            for (file in targetDirectoryFiles) {
+                if (file.name.contains("assets.tar.gz")) {
+                    val downloadDirectory = File(ulaFiles.emulatedScopedDir, "downloads")
+                    if (!downloadDirectory.exists()) downloadDirectory.mkdirs()
+                    val targetFile = File(downloadDirectory, file.name)
+                    file.copyTo(targetFile, overwrite = true)
+                    file.delete()
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     fun removeRootfsFilesFromFilesystem(targetFilesystemName: String) {
         val supportDirectory = File(getSupportDirectoryPath(targetFilesystemName))
         supportDirectory.walkBottomUp().forEach {
