@@ -84,9 +84,9 @@ class SessionStartupFsm(
 //                currentState is WaitingForSessionSelection || currentState is (DownloadingAssets)
                 true
             }
-            is CopyDownloadsToLocalStorage -> currentState is DownloadsHaveSucceeded
-            is VerifyFilesystemAssets -> currentState is NoDownloadsRequired || currentState is LocalDirectoryCopySucceeded
-            is VerifyAvailableStorage -> currentState is FilesystemAssetVerificationSucceeded
+            is CopyDownloadsToLocalStorage -> currentState is DownloadsHaveSucceeded || currentState is ExtractionHasCompletedSuccessfullyWithAssets
+            is VerifyFilesystemAssets -> currentState is NoDownloadsRequired || currentState is LocalDirectoryCopySucceeded || currentState is AssetListsRetrievalFailedUseCache
+            is VerifyAvailableStorage -> currentState is FilesystemAssetVerificationSucceeded || currentState is AssetListsRetrievalFailedDoExtract
             is VerifyAvailableStorageComplete -> currentState is VerifyingSufficientStorage || currentState is LowAvailableStorage
             is ExtractFilesystem -> currentState is StorageVerificationCompletedSuccessfully
             is ResetSessionState -> true
@@ -141,6 +141,15 @@ class SessionStartupFsm(
         val assetList = assetRepository.getAssetList(filesystem.distributionType)
 
         if (assetList.isEmpty()) {
+            if (filesystem.isCreatedFromBackup &&
+                !filesystemManager.hasFilesystemBeenSuccessfullyExtracted("${filesystem.id}")) {
+                state.postValue(AssetListsRetrievalFailedDoExtract)
+                return
+            }
+            if (filesystemManager.areAllRequiredAssetsPresent("${filesystem.id}", assetList)) {
+                state.postValue(AssetListsRetrievalFailedUseCache)
+                return
+            }
             state.postValue(AssetListsRetrievalFailed)
             return
         }
@@ -278,6 +287,10 @@ class SessionStartupFsm(
 
         if (filesystemManager.hasFilesystemBeenSuccessfullyExtracted(filesystemDirectoryName)) {
             filesystemManager.removeRootfsFilesFromFilesystem(filesystemDirectoryName)
+            if (filesystemManager.copyAssetsFromFilesystem(filesystemDirectoryName)) {
+                state.postValue(ExtractionHasCompletedSuccessfullyWithAssets)
+                return
+            }
             state.postValue(ExtractionHasCompletedSuccessfully)
             return
         }
@@ -299,6 +312,8 @@ sealed class AssetRetrievalState : SessionStartupState()
 object RetrievingAssetLists : AssetRetrievalState()
 data class AssetListsRetrievalSucceeded(val assetList: List<Asset>) : AssetRetrievalState()
 object AssetListsRetrievalFailed : AssetRetrievalState()
+object AssetListsRetrievalFailedDoExtract : AssetRetrievalState();
+object AssetListsRetrievalFailedUseCache : AssetRetrievalState();
 
 // Download requirements generation state
 sealed class DownloadRequirementsGenerationState : SessionStartupState()
@@ -328,6 +343,7 @@ object FilesystemAssetCopyFailed : AssetVerificationState()
 sealed class ExtractionState : SessionStartupState()
 data class ExtractingFilesystem(val extractionTarget: String) : ExtractionState()
 object ExtractionHasCompletedSuccessfully : ExtractionState()
+object ExtractionHasCompletedSuccessfullyWithAssets : ExtractionState()
 data class ExtractionFailed(val reason: String) : ExtractionState()
 
 sealed class StorageVerificationState : SessionStartupState()
