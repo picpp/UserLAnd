@@ -293,6 +293,8 @@ class MainActivityViewModel(
             is AssetListsRetrievalSucceeded -> { doTransitionIfRequirementsAreSelected {
                     submitSessionStartupEvent(GenerateDownloads(lastSelectedFilesystem, newState.assetList))
             } }
+            is AssetListsRetrievalFailedDoExtract -> submitSessionStartupEvent(VerifyAvailableStorage)
+            is AssetListsRetrievalFailedUseCache -> submitSessionStartupEvent(VerifyFilesystemAssets(lastSelectedFilesystem))
             is AssetListsRetrievalFailed -> postIllegalStateWithLog(ErrorFetchingAssetLists)
         }
     }
@@ -370,6 +372,7 @@ class MainActivityViewModel(
             is ExtractionHasCompletedSuccessfully -> { doTransitionIfRequirementsAreSelected {
                 state.postValue(SessionCanBeStarted(lastSelectedSession))
             } }
+            is ExtractionHasCompletedSuccessfullyWithAssets -> submitSessionStartupEvent(CopyDownloadsToLocalStorage)
             is ExtractionFailed -> postIllegalStateWithLog(FailedToExtractFilesystem(newState.reason))
         }
     }
