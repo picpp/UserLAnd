@@ -153,6 +153,7 @@ class SessionEditFragment : Fragment() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedServiceType = parent?.getItemAtPosition(position).toString().toServiceType()
                 session.serviceType = selectedServiceType
+                session.port = getDefaultServicePort(selectedServiceType)
             }
         }
 
@@ -192,7 +193,7 @@ class SessionEditFragment : Fragment() {
 
     private fun getDefaultServicePort(selectedServiceType: ServiceType): Long {
         return when (selectedServiceType) {
-            ServiceType.Vnc -> 51
+            ServiceType.Vnc -> 5951
             else -> 2022
         }
     }
