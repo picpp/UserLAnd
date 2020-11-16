@@ -439,7 +439,7 @@ class ContributionPrompter(private val activity: MainActivity, private val viewG
     private fun numberOfTimesOpenedIsGreaterThanThreshold(): Boolean {
         val numberTimesOpened = prefs.getInt(numberOfTimesOpenedKey, 0) + 1
         setNumberOfTimesOpened(numberTimesOpened)
-        return numberTimesOpened > minimumNumberOfOpensBeforeContributionRequest
+        return numberTimesOpened == minimumNumberOfOpensBeforeContributionRequest
     }
 
     private fun setNumberOfTimesOpened(numberTimesOpened: Int) {
